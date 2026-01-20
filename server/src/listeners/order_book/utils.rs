@@ -1,3 +1,12 @@
+use std::{
+    collections::{HashMap, VecDeque},
+    path::{Path, PathBuf},
+};
+
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use reqwest::Client;
+use serde_json::json;
+
 use crate::{
     listeners::order_book::{L2SnapshotParams, L2Snapshots},
     order_book::{
@@ -10,14 +19,6 @@ use crate::{
         inner::InnerLevel,
         node_data::{Batch, NodeDataFill, NodeDataOrderDiff, NodeDataOrderStatus},
     },
-};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use reqwest::Client;
-use serde_json::json;
-use std::collections::VecDeque;
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
 };
 
 pub(super) async fn process_rmp_file(dir: &Path) -> Result<PathBuf> {
@@ -135,10 +136,10 @@ impl<T> BatchQueue<T> {
     }
 
     pub(super) fn push(&mut self, block: Batch<T>) -> bool {
-        if let Some(last_ts) = self.last_ts {
-            if last_ts >= block.block_number() {
-                return false;
-            }
+        if let Some(last_ts) = self.last_ts
+            && last_ts >= block.block_number()
+        {
+            return false;
         }
         self.last_ts = Some(block.block_number());
         self.deque.push_back(block);
